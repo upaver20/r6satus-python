@@ -15,6 +15,7 @@ def run():
 
     try:
         auth = r6sapi.Auth( mail, pswd )
+        yield from auth.connect()
     except:
         print("Email address and password do not match")
         sys.exit(1)
