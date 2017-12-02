@@ -45,7 +45,7 @@ def run():
                 "K/D Ratio" : player.kills / player.deaths,
                 "wons" : player.matches_won,
                 "loses" : player.matches_lost,
-                "Win Ratio" : player.matches_won / player.matches_played
+                "W/L Ratio" : player.matches_won / player.matches_lost
             }
         players_data.append(player_data)
 
