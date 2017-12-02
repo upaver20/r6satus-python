@@ -27,26 +27,25 @@ def run():
             player = yield from auth.get_player(player_id, r6sapi.Platforms.UPLAY)
 
         except:
-            print (player_id + "is not found")
-            break
+            print (player_id + " is not found")
+            continue
 
-        else:
-            yield from player.load_general()
-            yield from player.load_level()
-            rank_data = yield from player.get_rank(r6sapi.RankedRegions.ASIA,7)
+        yield from player.load_general()
+        yield from player.load_level()
+        rank_data = yield from player.get_rank(r6sapi.RankedRegions.ASIA,7)
 
-            player_data = {
-                "id" : player.name,
-                "level" : player.level,
-                "icon"  : player.icon_url,
-                "rank"  : rank_data.rank,
-                "kills" : player.kills,
-                "deaths" : player.deaths,
-                "K/D Ratio" : player.kills / player.deaths,
-                "wons" : player.matches_won,
-                "loses" : player.matches_lost,
-                "W/L Ratio" : player.matches_won / player.matches_lost
-            }
+        player_data = {
+            "id" : player.name,
+            "level" : player.level,
+            "icon"  : player.icon_url,
+            "rank"  : rank_data.rank,
+            "kills" : player.kills,
+            "deaths" : player.deaths,
+            "K/D Ratio" : player.kills / player.deaths,
+            "wons" : player.matches_won,
+            "loses" : player.matches_lost,
+            "W/L Ratio" : player.matches_won / player.matches_lost
+        }
         players_data.append(player_data)
 
     json.dump(players_data,file,indent=4,sort_keys=True)
