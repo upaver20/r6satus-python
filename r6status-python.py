@@ -19,11 +19,12 @@ def zchk(target):
 def run():
     """ main function """
     config = json.load(open('config.json', 'r'))
-    file = open('player_data.json', 'w')
 
     mail = config["e-mail address"]
     pswd = config["password"]
     players = config["players"]
+
+    file = open(config["output file"], 'w')
 
     auth = r6sapi.Auth(mail, pswd)
     try:
