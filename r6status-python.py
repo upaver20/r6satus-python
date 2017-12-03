@@ -26,9 +26,6 @@ def run():
     recentdb = client['r6status']['recent']
     olddb = client['r6status']['old']
 
-    
-    recentdb.remove({})
-
     mail = config["e-mail address"]
     pswd = config["password"]
     players = config["players"]
@@ -39,6 +36,8 @@ def run():
     except r6sapi.r6sapi.FailedToConnect:
         print("Email address and password do not match")
         sys.exit(1)
+
+    players_data = []
 
 
     for player_id in players:
@@ -86,7 +85,10 @@ def run():
                 "W/L Ratio": round(gamemode.won / zchk(gamemode.lost), 2)
             }
 
-        recentdb.insert_one(player_data)
-        olddb.insert_one(player_data)
+        players_data.append(player_data)
+
+    recentdb.remove({})
+    recentdb.insert_many(players_data)
+    olddb.insert_many(players_data)
         
 asyncio.get_event_loop().run_until_complete(run())
