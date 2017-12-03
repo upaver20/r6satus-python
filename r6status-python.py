@@ -19,7 +19,7 @@ def zchk(target):
 def run():
     """ main function """
     config = json.load(open('config.json', 'r'))
-    file = open('player_data.json', 'w')
+    file = open(config["output file"], 'w')
 
     mail = config["e-mail address"]
     pswd = config["password"]
