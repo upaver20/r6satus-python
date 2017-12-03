@@ -8,6 +8,8 @@ Extract player data of Rainbow six siege
 
 r6sapi >= 0.2.0
 
+mongodb 
+
 ## Get started
 
     pip install r6sapi
