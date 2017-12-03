@@ -6,7 +6,8 @@ import json
 import sys
 import asyncio
 import r6sapi
-
+from pymongo import MongoClient
+import datetime
 
 def zchk(target):
     """Check if the input is zero"""
@@ -19,7 +20,11 @@ def zchk(target):
 def run():
     """ main function """
     config = json.load(open('config.json', 'r'))
-    file = open('player_data.json', 'w')
+
+    client = MongoClient(config["mongodb addres"],config["mongodb port"])
+
+    db = client.r6status
+    collection = db['recent']
 
     mail = config["e-mail address"]
     pswd = config["password"]
@@ -32,7 +37,6 @@ def run():
         print("Email address and password do not match")
         sys.exit(1)
 
-    players_data = []
 
     for player_id in players:
 
@@ -49,6 +53,7 @@ def run():
         rank_data = yield from player.get_rank(r6sapi.RankedRegions.ASIA)
 
         player_data = {
+            "date": datetime.datetime.utcnow(),
             "id": player.name,
             "level": player.level,
             "icon": player.icon_url,
@@ -78,8 +83,6 @@ def run():
                 "W/L Ratio": round(gamemode.won / zchk(gamemode.lost), 2)
             }
 
-        players_data.append(player_data)
-
-    json.dump(players_data, file, indent=4, sort_keys=True)
-
+        collection.insert_one(player_data)
+        
 asyncio.get_event_loop().run_until_complete(run())
