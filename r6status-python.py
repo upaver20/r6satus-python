@@ -84,5 +84,5 @@ def run():
             }
 
         collection.insert_one(player_data)
-        
+
 asyncio.get_event_loop().run_until_complete(run())
