@@ -23,8 +23,11 @@ def run():
 
     client = MongoClient(config["mongodb addres"],config["mongodb port"])
 
-    db = client.r6status
-    collection = db['recent']
+    recentdb = client['r6status']['recent']
+    olddb = client['r6status']['old']
+
+    
+    recentdb.remove({})
 
     mail = config["e-mail address"]
     pswd = config["password"]
@@ -83,6 +86,7 @@ def run():
                 "W/L Ratio": round(gamemode.won / zchk(gamemode.lost), 2)
             }
 
-        collection.insert_one(player_data)
+        recentdb.insert_one(player_data)
+        olddb.insert_one(player_data)
         
 asyncio.get_event_loop().run_until_complete(run())
