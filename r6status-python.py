@@ -17,7 +17,7 @@ def zchk(target):
 
 
 @asyncio.coroutine
-def run():
+def run(players = None):
     """ main function """
     config = json.load(open('config.json', 'r'))
 
@@ -28,7 +28,9 @@ def run():
 
     mail = config["e-mail address"]
     pswd = config["password"]
-    players = config["players"]
+
+    if players == None:
+        players = config["players"]
 
     auth = r6sapi.Auth(mail, pswd)
     try:
@@ -84,11 +86,12 @@ def run():
                 "play time": gamemode.time_played,
                 "W/L Ratio": round(gamemode.won / zchk(gamemode.lost), 2)
             }
-
+        recentdb.delete_one({"id": player.name})
+        recentdb.insert_one(player_data)
         players_data.append(player_data)
 
-    recentdb.remove({})
-    recentdb.insert_many(players_data)
+    
     olddb.insert_many(players_data)
 
-asyncio.get_event_loop().run_until_complete(run())
+args = sys.argv
+asyncio.get_event_loop().run_until_complete(run(args))
