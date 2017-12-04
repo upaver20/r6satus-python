@@ -16,14 +16,16 @@ def zchk(target):
 
 
 @asyncio.coroutine
-def run():
+def run(players = None):
     """ main function """
     config = json.load(open('config.json', 'r'))
     file = open('player_data.json', 'w')
 
     mail = config["e-mail address"]
     pswd = config["password"]
-    players = config["players"]
+
+    if players == None:
+        players = config["players"]
 
     auth = r6sapi.Auth(mail, pswd)
     try:
@@ -82,4 +84,5 @@ def run():
 
     json.dump(players_data, file, indent=4, sort_keys=True)
 
-asyncio.get_event_loop().run_until_complete(run())
+args = sys.argv
+asyncio.get_event_loop().run_until_complete(run(args))
