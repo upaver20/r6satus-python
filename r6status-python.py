@@ -17,7 +17,7 @@ def zchk(target):
 
 
 @asyncio.coroutine
-def run(players = None):
+def run():
     """ main function """
     config = json.load(open('config.json', 'r'))
 
@@ -29,8 +29,7 @@ def run(players = None):
     mail = config["e-mail address"]
     pswd = config["password"]
 
-    if players == None:
-        players = config["players"]
+    players = config["players"]
 
     auth = r6sapi.Auth(mail, pswd)
     try:
@@ -65,12 +64,12 @@ def run(players = None):
             "general": {
                 "kills": player.kills,
                 "deaths": player.deaths,
-                "K/D Ratio": round(player.kills / zchk(player.deaths), 2),
+                "kdr": round(player.kills / zchk(player.deaths), 2),
                 "wons": player.matches_won,
                 "loses": player.matches_lost,
                 "played": player.matches_played,
-                "play time": player.time_played,
-                "W/L Ratio": round(player.matches_won / zchk(player.matches_lost), 2)
+                "playtimes": player.time_played,
+                "wlr": round(player.matches_won / zchk(player.matches_lost), 2)
             }
         }
 
@@ -79,12 +78,12 @@ def run(players = None):
             player_data[gamemode.name] = {
                 "kills": gamemode.kills,
                 "deaths": gamemode.deaths,
-                "K/D Ratio": round(gamemode.kills / zchk(gamemode.deaths), 2),
+                "kdr": round(gamemode.kills / zchk(gamemode.deaths), 2),
                 "wons": gamemode.won,
                 "loses": gamemode.lost,
                 "played": gamemode.played,
-                "play time": gamemode.time_played,
-                "W/L Ratio": round(gamemode.won / zchk(gamemode.lost), 2)
+                "playtimes": gamemode.time_played,
+                "wlr": round(gamemode.won / zchk(gamemode.lost), 2)
             }
         recentdb.delete_one({"id": player.name})
         recentdb.insert_one(player_data)
@@ -93,5 +92,5 @@ def run(players = None):
     
     olddb.insert_many(players_data)
 
-args = sys.argv
-asyncio.get_event_loop().run_until_complete(run(args))
+
+asyncio.get_event_loop().run_until_complete(run())
