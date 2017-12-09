@@ -19,7 +19,8 @@ def zchk(target):
 @asyncio.coroutine
 def run():
     """ main function """
-    config = json.load(open('config.json', 'r'))
+    config_path = open('/home/upaver20/.ghq/github.com/upaver20/r6satus-python/config.json','r')
+    config = json.load(config_path)
 
     client = MongoClient(config["mongodb addres"],config["mongodb port"])
 
@@ -64,12 +65,12 @@ def run():
             "general": {
                 "kills": player.kills,
                 "deaths": player.deaths,
-                "kdr": round(player.kills / zchk(player.deaths), 2),
+                "kdr": player.kills / zchk(player.deaths),
                 "wons": player.matches_won,
                 "loses": player.matches_lost,
                 "played": player.matches_played,
                 "playtimes": player.time_played,
-                "wlr": round(player.matches_won / zchk(player.matches_lost), 2)
+                "wlr": player.matches_won / zchk(player.matches_lost)
             }
         }
 
@@ -78,18 +79,18 @@ def run():
             player_data[gamemode.name] = {
                 "kills": gamemode.kills,
                 "deaths": gamemode.deaths,
-                "kdr": round(gamemode.kills / zchk(gamemode.deaths), 2),
+                "kdr": gamemode.kills / zchk(gamemode.deaths),
                 "wons": gamemode.won,
                 "loses": gamemode.lost,
                 "played": gamemode.played,
                 "playtimes": gamemode.time_played,
-                "wlr": round(gamemode.won / zchk(gamemode.lost), 2)
+                "wlr": gamemode.won / zchk(gamemode.lost)
             }
         recentdb.delete_one({"id": player.name})
         recentdb.insert_one(player_data)
         players_data.append(player_data)
 
-    
+
     olddb.insert_many(players_data)
 
 
