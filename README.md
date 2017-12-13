@@ -19,4 +19,5 @@ r6sapi >= 0.2.0
 Edit `config.json` and Run!!!
 
     python r6status-python.py
-
+or
+	python r6status-python.py "upa.ver.2.0.Gsc"
