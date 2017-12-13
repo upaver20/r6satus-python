@@ -16,7 +16,7 @@ def zchk(target):
 
 
 @asyncio.coroutine
-def run(players = None):
+def run(players=None):
     """ main function """
     config = json.load(open('config.json', 'r'))
 
