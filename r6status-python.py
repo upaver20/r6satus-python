@@ -26,11 +26,12 @@ def run():
 
     recentdb = client['r6status']['recent']
     olddb = client['r6status']['old']
+    userdb = client['r6status']['user']
 
     mail = config["e-mail address"]
     pswd = config["password"]
 
-    players = config["players"]
+    players = userdb.find({},{'_id':0,'id':1})
 
     auth = r6sapi.Auth(mail, pswd)
     try:
@@ -43,12 +44,14 @@ def run():
 
 
     for player_id in players:
-
+        date = datetime.datetime.utcnow()
         try:
-            player = yield from auth.get_player(player_id, r6sapi.Platforms.UPLAY)
-
+            player = yield from auth.get_player(player_id['id'], r6sapi.Platforms.UPLAY)
         except r6sapi.r6sapi.InvalidRequest:
-            print(player_id + " is not found")
+            userdb.update({"id":player_id['id']},{'$set':{"date":date},'$inc':{"deathcount":1}},upsert=True)
+            if 5 > userdb.find_one({"id":player_id['id']})['deathcount']:
+                userdb.delete_one({"id": player_id['id']})
+            print(player_id['id'] + " is not found")
             continue
 
         yield from player.check_general()
@@ -57,7 +60,7 @@ def run():
         rank_data = yield from player.get_rank(r6sapi.RankedRegions.ASIA)
 
         player_data = {
-            "date": datetime.datetime.utcnow(),
+            "date": date,
             "id": player.name,
             "level": player.level,
             "icon": player.icon_url,
@@ -86,6 +89,9 @@ def run():
                 "playtimes": gamemode.time_played,
                 "wlr": gamemode.won / zchk(gamemode.lost)
             }
+        userdb.update({"id":player.name},{'$set':{"date":date,"deathcount":0}},upsert=True)
+
+
         recentdb.delete_one({"id": player.name})
         recentdb.insert_one(player_data)
         players_data.append(player_data)
