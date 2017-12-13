@@ -40,7 +40,8 @@ def run(players=None):
     for player_id in players:
 
         try:
-            player = yield from auth.get_player(player_id, r6sapi.Platforms.UPLAY)
+            player = yield from auth.get_player(player_id,
+                                                r6sapi.Platforms.UPLAY)
 
         except r6sapi.r6sapi.InvalidRequest:
             print(player_id + " is not found")
@@ -64,7 +65,8 @@ def run(players=None):
                 "loses": player.matches_lost,
                 "played": player.matches_played,
                 "play time": player.time_played,
-                "W/L Ratio": round(player.matches_won / zchk(player.matches_lost), 2)
+                "W/L Ratio": round(player.matches_won /
+                                   zchk(player.matches_lost), 2)
             }
         }
 
@@ -84,6 +86,7 @@ def run(players=None):
         players_data.append(player_data)
 
     json.dump(players_data, file, indent=4, sort_keys=True)
+
 
 args = sys.argv
 asyncio.get_event_loop().run_until_complete(run(args))
