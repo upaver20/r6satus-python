@@ -19,7 +19,8 @@ def zchk(target):
 @asyncio.coroutine
 def run():
     """ main function """
-    config = json.load(open('config.json', 'r'))
+    config_path = open('/home/upaver20/.ghq/github.com/upaver20/r6satus-python/config.json','r')
+    config = json.load(config_path)
 
     client = MongoClient(config["mongodb addres"],config["mongodb port"])
 
@@ -30,6 +31,7 @@ def run():
     mail = config["e-mail address"]
     pswd = config["password"]
 
+    players = userdb.find({},{'_id':0,'id':1})
 
     auth = r6sapi.Auth(mail, pswd)
     try:
@@ -42,13 +44,14 @@ def run():
 
 
     for player_id in players:
-
         date = datetime.datetime.utcnow()
         try:
-            player = yield from auth.get_player(player_id, r6sapi.Platforms.UPLAY)
-
+            player = yield from auth.get_player(player_id['id'], r6sapi.Platforms.UPLAY)
         except r6sapi.r6sapi.InvalidRequest:
-            print(player_id + " is not found")
+            userdb.update({"id":player_id['id']},{'$set':{"date":date},'$inc':{"deathcount":1}},upsert=True)
+            if 5 > userdb.find_one({"id":player_id['id']})['deathcount']:
+                userdb.delete_one({"id": player_id['id']})
+            print(player_id['id'] + " is not found")
             continue
 
         yield from player.check_general()
@@ -65,12 +68,12 @@ def run():
             "general": {
                 "kills": player.kills,
                 "deaths": player.deaths,
-                "K/D Ratio": round(player.kills / zchk(player.deaths), 2),
+                "kdr": player.kills / zchk(player.deaths),
                 "wons": player.matches_won,
                 "loses": player.matches_lost,
                 "played": player.matches_played,
-                "play time": player.time_played,
-                "W/L Ratio": round(player.matches_won / zchk(player.matches_lost), 2)
+                "playtimes": player.time_played,
+                "wlr": player.matches_won / zchk(player.matches_lost)
             }
         }
 
@@ -79,20 +82,22 @@ def run():
             player_data[gamemode.name] = {
                 "kills": gamemode.kills,
                 "deaths": gamemode.deaths,
-                "K/D Ratio": round(gamemode.kills / zchk(gamemode.deaths), 2),
+                "kdr": gamemode.kills / zchk(gamemode.deaths),
                 "wons": gamemode.won,
                 "loses": gamemode.lost,
                 "played": gamemode.played,
-                "play time": gamemode.time_played,
-                "W/L Ratio": round(gamemode.won / zchk(gamemode.lost), 2)
+                "playtimes": gamemode.time_played,
+                "wlr": gamemode.won / zchk(gamemode.lost)
             }
-        userdb.update_one({{"id": player.name}},{'$set':{"date":date}})
-        userdb.update_one({{"id": player.name}},{'$set':{"deathcount":0}})
+        userdb.update({"id":player.name},{'$set':{"date":date,"deathcount":0}},upsert=True)
+
+
         recentdb.delete_one({"id": player.name})
         recentdb.insert_one(player_data)
         players_data.append(player_data)
 
-    
+
     olddb.insert_many(players_data)
+
 
 asyncio.get_event_loop().run_until_complete(run())
