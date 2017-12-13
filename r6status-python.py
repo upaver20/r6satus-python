@@ -17,7 +17,7 @@ def zchk(target):
 
 
 @asyncio.coroutine
-def run(players = None):
+def run():
     """ main function """
     config = json.load(open('config.json', 'r'))
 
@@ -25,12 +25,11 @@ def run(players = None):
 
     recentdb = client['r6status']['recent']
     olddb = client['r6status']['old']
+    userdb = client['r6status']['user']
 
     mail = config["e-mail address"]
     pswd = config["password"]
 
-    if players == None:
-        players = config["players"]
 
     auth = r6sapi.Auth(mail, pswd)
     try:
@@ -44,6 +43,7 @@ def run(players = None):
 
     for player_id in players:
 
+        date = datetime.datetime.utcnow()
         try:
             player = yield from auth.get_player(player_id, r6sapi.Platforms.UPLAY)
 
@@ -57,7 +57,7 @@ def run(players = None):
         rank_data = yield from player.get_rank(r6sapi.RankedRegions.ASIA)
 
         player_data = {
-            "date": datetime.datetime.utcnow(),
+            "date": date,
             "id": player.name,
             "level": player.level,
             "icon": player.icon_url,
@@ -86,6 +86,8 @@ def run(players = None):
                 "play time": gamemode.time_played,
                 "W/L Ratio": round(gamemode.won / zchk(gamemode.lost), 2)
             }
+        userdb.update_one({{"id": player.name}},{'$set':{"date":date}})
+        userdb.update_one({{"id": player.name}},{'$set':{"deathcount":0}})
         recentdb.delete_one({"id": player.name})
         recentdb.insert_one(player_data)
         players_data.append(player_data)
@@ -93,5 +95,4 @@ def run(players = None):
     
     olddb.insert_many(players_data)
 
-args = sys.argv
-asyncio.get_event_loop().run_until_complete(run(args))
+asyncio.get_event_loop().run_until_complete(run())
