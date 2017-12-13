@@ -21,7 +21,8 @@ def zchk(target):
 def run():
     """ main function """
     config_path = open(
-        '/home/upaver20/.ghq/github.com/upaver20/r6satus-python/config.json', 'r')
+        '/home/upaver20/.ghq/github.com/upaver20/r6satus-python/config.json',
+        'r')
     config = json.load(config_path)
 
     client = MongoClient(config["mongodb addres"], config["mongodb port"])
@@ -47,10 +48,12 @@ def run():
     for player_id in players:
         date = datetime.datetime.utcnow()
         try:
-            player = yield from auth.get_player(player_id['id'], r6sapi.Platforms.UPLAY)
+            player = yield from auth.get_player(player_id['id'],
+                                                r6sapi.Platforms.UPLAY)
         except r6sapi.r6sapi.InvalidRequest:
-            userdb.update({"id": player_id['id']}, {
-                          '$set': {"date": date}, '$inc': {"deathcount": 1}}, upsert=True)
+            userdb.update({"id": player_id['id']},
+                          {'$set': {"date": date}, '$inc': {"deathcount": 1}},
+                          upsert=True)
             if 5 > userdb.find_one({"id": player_id['id']})['deathcount']:
                 userdb.delete_one({"id": player_id['id']})
             print(player_id['id'] + " is not found")
