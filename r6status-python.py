@@ -9,6 +9,7 @@ import r6sapi
 from pymongo import MongoClient
 import datetime
 
+
 def zchk(target):
     """Check if the input is zero"""
     if target == 0:
@@ -19,10 +20,11 @@ def zchk(target):
 @asyncio.coroutine
 def run():
     """ main function """
-    config_path = open('/home/upaver20/.ghq/github.com/upaver20/r6satus-python/config.json','r')
+    config_path = open(
+        '/home/upaver20/.ghq/github.com/upaver20/r6satus-python/config.json', 'r')
     config = json.load(config_path)
 
-    client = MongoClient(config["mongodb addres"],config["mongodb port"])
+    client = MongoClient(config["mongodb addres"], config["mongodb port"])
 
     recentdb = client['r6status']['recent']
     olddb = client['r6status']['old']
@@ -31,7 +33,7 @@ def run():
     mail = config["e-mail address"]
     pswd = config["password"]
 
-    players = userdb.find({},{'_id':0,'id':1})
+    players = userdb.find({}, {'_id': 0, 'id': 1})
 
     auth = r6sapi.Auth(mail, pswd)
     try:
@@ -42,14 +44,14 @@ def run():
 
     players_data = []
 
-
     for player_id in players:
         date = datetime.datetime.utcnow()
         try:
             player = yield from auth.get_player(player_id['id'], r6sapi.Platforms.UPLAY)
         except r6sapi.r6sapi.InvalidRequest:
-            userdb.update({"id":player_id['id']},{'$set':{"date":date},'$inc':{"deathcount":1}},upsert=True)
-            if 5 > userdb.find_one({"id":player_id['id']})['deathcount']:
+            userdb.update({"id": player_id['id']}, {
+                          '$set': {"date": date}, '$inc': {"deathcount": 1}}, upsert=True)
+            if 5 > userdb.find_one({"id": player_id['id']})['deathcount']:
                 userdb.delete_one({"id": player_id['id']})
             print(player_id['id'] + " is not found")
             continue
@@ -89,13 +91,12 @@ def run():
                 "playtimes": gamemode.time_played,
                 "wlr": gamemode.won / zchk(gamemode.lost)
             }
-        userdb.update({"id":player.name},{'$set':{"date":date,"deathcount":0}},upsert=True)
-
+        userdb.update({"id": player.name}, {
+                      '$set': {"date": date, "deathcount": 0}}, upsert=True)
 
         recentdb.delete_one({"id": player.name})
         recentdb.insert_one(player_data)
         players_data.append(player_data)
-
 
     olddb.insert_many(players_data)
 
