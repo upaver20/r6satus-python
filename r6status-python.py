@@ -53,6 +53,7 @@ def run():
             yield from player.check_level()
             yield from player.load_queues()
             rank_data = yield from player.get_rank(r6sapi.RankedRegions.ASIA)
+            operators_data = yield from player.load_all_operators()
 
         except r6sapi.r6sapi.InvalidRequest:
             print(player_id['id'] + " is not found")
@@ -84,7 +85,6 @@ def run():
         }
 
         for gamemode in [player.casual, player.ranked]:
-
             player_data[gamemode.name] = {
                 "kills": gamemode.kills,
                 "deaths": gamemode.deaths,
@@ -95,6 +95,18 @@ def run():
                 "playtimes": gamemode.time_played,
                 "wlr": gamemode.won / zchk(gamemode.lost)
             }
+
+        for name, operator in operators_data.items():
+            player_data["operator"][name] = {
+                "type": OperatorTypes[operator.name.upper()],
+                "kills": operator.kills,
+                "deaths": operator.deaths,
+                "kdr": operator.kills / zchk(operator.deaths),
+                "wons": operator.wins,
+                "loses": operator.losses,
+                "pick": operator.wins + operator.losses
+            }
+
         userdb.update({"id": player.name}, {
                       '$set': {"date": date, "deathcount": 0}}, upsert=True)
 
