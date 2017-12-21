@@ -10,6 +10,45 @@ from pymongo import MongoClient
 import datetime
 
 
+OperatorTypes = {
+    "DOC": "Defense",
+    "TWITCH": "Attack",
+    "ASH": "Attack",
+    "THERMITE": "Attack",
+    "BLITZ": "Attack",
+    "BUCK": "Attack",
+    "HIBANA": "Attack",
+    "KAPKAN": "Defense",
+    "PULSE": "Defense",
+    "CASTLE": "Defense",
+    "ROOK": "Defense",
+    "BANDIT": "Defense",
+    "SMOKE": "Defense",
+    "FROST": "Defense",
+    "VALKYRIE": "Defense",
+    "TACHANKA": "Defense",
+    "GLAZ": "Attack",
+    "FUZE": "Attack",
+    "SLEDGE": "Attack",
+    "MONTAGNE": "Attack",
+    "MUTE": "Defense",
+    "ECHO": "Defense",
+    "THATCHER": "Attack",
+    "CAPITAO": "Attack",
+    "IQ": "Attack",
+    "BLACKBEARD": "Attack",
+    "JAGER": "Defense",
+    "CAVEIRA": "Defense",
+    "JACKAL": "Attack",
+    "MIRA": "Defense",
+    "LESION": "Defense",
+    "YING": "Attack",
+    "ELA": "Defense",
+    "DOKKAEBI": "Attack",
+    "VIGIL": "Defense",
+    "ZOFIA": "Attack"
+}
+
 def zchk(target):
     """Check if the input is zero"""
     if target == 0:
