@@ -5,3 +5,7 @@
 /.vs
 /config.json
 /data.json
+/.vscode
+log.log
+err.log
+player_data.json
