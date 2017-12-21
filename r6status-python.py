@@ -20,7 +20,8 @@ def zchk(target):
 @asyncio.coroutine
 def run():
     """ main function """
-    config_path = open('/home/upaver20/.ghq/github.com/upaver20/r6satus-python/config.json','r')
+    config_path = open(
+        '/home/upaver20/.ghq/github.com/upaver20/r6satus-python/config.json', 'r')
     config = json.load(config_path)
 
     client = MongoClient(config["mongodb addres"], config["mongodb port"])
@@ -48,19 +49,21 @@ def run():
         try:
             player = yield from auth.get_player(player_id['id'],
                                                 r6sapi.Platforms.UPLAY)
+            yield from player.check_general()
+            yield from player.check_level()
+            yield from player.load_queues()
+            rank_data = yield from player.get_rank(r6sapi.RankedRegions.ASIA)
+
         except r6sapi.r6sapi.InvalidRequest:
+            print(player_id['id'] + " is not found")
             userdb.update({"id": player_id['id']},
                           {'$set': {"date": date}, '$inc': {"deathcount": 1}},
                           upsert=True)
-            if 5 > userdb.find_one({"id": player_id['id']})['deathcount']:
+            if 5 < userdb.find_one({"id": player_id['id']})['deathcount']:
                 userdb.delete_one({"id": player_id['id']})
-            print(player_id['id'] + " is not found")
-            continue
+                print(player_id['id'] + " was deleted in database")
 
-        yield from player.check_general()
-        yield from player.check_level()
-        yield from player.load_queues()
-        rank_data = yield from player.get_rank(r6sapi.RankedRegions.ASIA)
+            continue
 
         player_data = {
             "date": date,
