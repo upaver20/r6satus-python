@@ -111,7 +111,7 @@ def run():
             "level": player.level,
             "icon": player.icon_url,
             "rank": rank_data.rank,
-            "operator": {},
+            "operator": [],
             "general": {
                 "kills": player.kills,
                 "deaths": player.deaths,
@@ -137,7 +137,8 @@ def run():
             }
 
         for name, operator in operators_data.items():
-            player_data["operator"][name] = {
+            player_data["operator"].append({
+                "name": operator.name,
                 "type": OperatorTypes[operator.name.upper()],
                 "kills": operator.kills,
                 "deaths": operator.deaths,
@@ -145,7 +146,7 @@ def run():
                 "wons": operator.wins,
                 "loses": operator.losses,
                 "pick": operator.wins + operator.losses
-            }
+            })
 
         userdb.update({"id": player.name}, {
                       '$set': {"date": date, "deathcount": 0}}, upsert=True)
