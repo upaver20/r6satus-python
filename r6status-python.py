@@ -111,6 +111,7 @@ def run():
             "level": player.level,
             "icon": player.icon_url,
             "rank": rank_data.rank,
+            "operator": {},
             "general": {
                 "kills": player.kills,
                 "deaths": player.deaths,
