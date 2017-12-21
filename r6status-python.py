@@ -16,14 +16,18 @@ def zchk(target):
 
 
 @asyncio.coroutine
-def run():
+def run(players=None):
     """ main function """
     config = json.load(open('config.json', 'r'))
     file = open(config["output file"], 'w')
 
     mail = config["e-mail address"]
     pswd = config["password"]
-    players = config["players"]
+
+    if players == None:
+        players = config["players"]
+
+    file = open(config["output file"], 'w')
 
     auth = r6sapi.Auth(mail, pswd)
     try:
@@ -37,7 +41,8 @@ def run():
     for player_id in players:
 
         try:
-            player = yield from auth.get_player(player_id, r6sapi.Platforms.UPLAY)
+            player = yield from auth.get_player(player_id,
+                                                r6sapi.Platforms.UPLAY)
 
         except r6sapi.r6sapi.InvalidRequest:
             print(player_id + " is not found")
@@ -61,7 +66,8 @@ def run():
                 "loses": player.matches_lost,
                 "played": player.matches_played,
                 "play time": player.time_played,
-                "W/L Ratio": round(player.matches_won / zchk(player.matches_lost), 2)
+                "W/L Ratio": round(player.matches_won /
+                                   zchk(player.matches_lost), 2)
             }
         }
 
@@ -82,4 +88,6 @@ def run():
 
     json.dump(players_data, file, indent=4, sort_keys=True)
 
-asyncio.get_event_loop().run_until_complete(run())
+
+args = sys.argv
+asyncio.get_event_loop().run_until_complete(run(args))
