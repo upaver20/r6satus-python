@@ -7,6 +7,45 @@ import sys
 import asyncio
 import r6sapi
 
+OperatorTypes = {
+    "DOC": "Defense",
+    "TWITCH": "Attack",
+    "ASH": "Attack",
+    "THERMITE": "Attack",
+    "BLITZ": "Attack",
+    "BUCK": "Attack",
+    "HIBANA": "Attack",
+    "KAPKAN": "Defense",
+    "PULSE": "Defense",
+    "CASTLE": "Defense",
+    "ROOK": "Defense",
+    "BANDIT": "Defense",
+    "SMOKE": "Defense",
+    "FROST": "Defense",
+    "VALKYRIE": "Defense",
+    "TACHANKA": "Defense",
+    "GLAZ": "Attack",
+    "FUZE": "Attack",
+    "SLEDGE": "Attack",
+    "MONTAGNE": "Attack",
+    "MUTE": "Defense",
+    "ECHO": "Defense",
+    "THATCHER": "Attack",
+    "CAPITAO": "Attack",
+    "IQ": "Attack",
+    "BLACKBEARD": "Attack",
+    "JAGER": "Defense",
+    "CAVEIRA": "Defense",
+    "JACKAL": "Attack",
+    "MIRA": "Defense",
+    "LESION": "Defense",
+    "YING": "Attack",
+    "ELA": "Defense",
+    "DOKKAEBI": "Attack",
+    "VIGIL": "Defense",
+    "ZOFIA": "Attack"
+}
+
 
 def zchk(target):
     """Check if the input is zero"""
@@ -23,8 +62,7 @@ def run(players=None):
     mail = config["e-mail address"]
     pswd = config["password"]
 
-    if players == None:
-        players = config["players"]
+    players = config["players"]
 
     file = open(config["output file"], 'w')
 
@@ -42,21 +80,22 @@ def run(players=None):
         try:
             player = yield from auth.get_player(player_id,
                                                 r6sapi.Platforms.UPLAY)
+            yield from player.check_general()
+            yield from player.check_level()
+            yield from player.load_queues()
+            rank_data = yield from player.get_rank(r6sapi.RankedRegions.ASIA)
+            operators_data = yield from player.load_all_operators()
 
         except r6sapi.r6sapi.InvalidRequest:
             print(player_id + " is not found")
             continue
-
-        yield from player.check_general()
-        yield from player.check_level()
-        yield from player.load_queues()
-        rank_data = yield from player.get_rank(r6sapi.RankedRegions.ASIA)
 
         player_data = {
             "id": player.name,
             "level": player.level,
             "icon": player.icon_url,
             "rank": rank_data.rank,
+            "operator": {},
             "general": {
                 "kills": player.kills,
                 "deaths": player.deaths,
@@ -81,6 +120,17 @@ def run(players=None):
                 "played": gamemode.played,
                 "play time": gamemode.time_played,
                 "W/L Ratio": round(gamemode.won / zchk(gamemode.lost), 2)
+            }
+
+        for name, operator in operators_data.items():
+            player_data["operator"][name] = {
+                "type": OperatorTypes[operator.name.upper()],
+                "kills": operator.kills,
+                "deaths": operator.deaths,
+                "kdr": operator.kills / zchk(operator.deaths),
+                "wons": operator.wins,
+                "loses": operator.losses,
+                "pick": operator.wins + operator.losses
             }
 
         players_data.append(player_data)
