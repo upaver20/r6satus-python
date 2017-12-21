@@ -20,9 +20,7 @@ def zchk(target):
 @asyncio.coroutine
 def run():
     """ main function """
-    config_path = open(
-        '/home/upaver20/.ghq/github.com/upaver20/r6satus-python/config.json',
-        'r')
+    config_path = open('/home/upaver20/.ghq/github.com/upaver20/r6satus-python/config.json','r')
     config = json.load(config_path)
 
     client = MongoClient(config["mongodb addres"], config["mongodb port"])
