@@ -46,7 +46,13 @@ OperatorTypes = {
     "ELA": "Defense",
     "DOKKAEBI": "Attack",
     "VIGIL": "Defense",
-    "ZOFIA": "Attack"
+    "ZOFIA": "Attack" ,
+    "DOKKAEBI": "Attack",
+    "VIGIL": "Defense",
+    "LION": "Attack",
+    "FINKA": "Attack",
+    "MAESTRO": "Defense",
+    "ALIBI": "Defense"
 }
 
 def zchk(target):
