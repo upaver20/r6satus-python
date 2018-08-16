@@ -47,8 +47,6 @@ OperatorTypes = {
     "DOKKAEBI": "Attack",
     "VIGIL": "Defense",
     "ZOFIA": "Attack" ,
-    "DOKKAEBI": "Attack",
-    "VIGIL": "Defense",
     "LION": "Attack",
     "FINKA": "Attack",
     "MAESTRO": "Defense",
