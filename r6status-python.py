@@ -46,12 +46,13 @@ OperatorTypes = {
     "ELA": "Defense",
     "DOKKAEBI": "Attack",
     "VIGIL": "Defense",
-    "ZOFIA": "Attack" ,
+    "ZOFIA": "Attack",
     "LION": "Attack",
     "FINKA": "Attack",
     "MAESTRO": "Defense",
     "ALIBI": "Defense"
 }
+
 
 def zchk(target):
     """Check if the input is zero"""
@@ -96,7 +97,7 @@ def run():
             yield from player.check_level()
             yield from player.load_queues()
             rank_data = yield from player.get_rank(r6sapi.RankedRegions.ASIA)
-            operators_data = yield from player.load_all_operators()
+            operators_data = yield from player.get_all_operators()
 
         except r6sapi.r6sapi.InvalidRequest:
             print(player_id['id'] + " is not found")
