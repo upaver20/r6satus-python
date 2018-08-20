@@ -73,6 +73,7 @@ def run():
     recentdb = client['r6status']['recent']
     olddb = client['r6status']['old']
     userdb = client['r6status']['user']
+    id2uid = client['r6status']['id2uid']
 
     mail = config["e-mail address"]
     pswd = config["password"]
@@ -109,13 +110,14 @@ def run():
                 print(player_id['id'] + " was deleted in database")
 
             continue
-
+        print(player.userid)
         player_data = {
             "date": date,
             "id": player.name,
             "level": player.level,
             "icon": player.icon_url,
             "rank": rank_data.rank,
+            "uid": player.userid,
             "operator": [],
             "general": {
                 "kills": player.kills,
@@ -155,7 +157,8 @@ def run():
 
         userdb.update({"id": player.name}, {
                       '$set': {"date": date, "deathcount": 0}}, upsert=True)
-
+        id2uid.update({"id": player.name}, {
+                      '$set': {"date": date, "uid": player.userid}}, upsert=True)
         recentdb.delete_one({"id": player.name})
         recentdb.insert_one(player_data)
         players_data.append(player_data)
