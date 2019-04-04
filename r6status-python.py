@@ -143,7 +143,7 @@ def run():
                 "wlr": gamemode.won / zchk(gamemode.lost)
             }
 
-        for name, operator in operators_data.items():
+        for _, operator in operators_data.items():
             player_data["operator"].append({
                 "name": operator.name,
                 "type": OperatorTypes[operator.name.upper()],
