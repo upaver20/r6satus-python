@@ -64,16 +64,16 @@ def zchk(target):
 @asyncio.coroutine
 def run():
     """ main function """
-    config_path = open(
-        '/home/upaver20/.ghq/github.com/upaver20/r6satus-python/config.json', 'r')
+    config_path = open("./config.json", 'r')
     config = json.load(config_path)
 
     client = MongoClient(config["mongodb addres"], config["mongodb port"])
-
     recentdb = client['r6status']['recent']
     olddb = client['r6status']['old']
     userdb = client['r6status']['user']
     id2uid = client['r6status']['id2uid']
+    liev_id = client['r6status']['live_id']
+    dead_id = client['r6status']['dead_id']
 
     mail = config["e-mail address"]
     pswd = config["password"]
@@ -155,9 +155,9 @@ def run():
                 "pick": operator.wins + operator.losses
             })
 
-        userdb.update({"id": player.name}, {
+        userdb.update_one({"id": player.name}, {
                       '$set': {"date": date, "deathcount": 0}}, upsert=True)
-        id2uid.update({"id": player.name}, {
+        id2uid.update_one({"id": player.name}, {
                       '$set': {"date": date, "uid": player.userid}}, upsert=True)
         recentdb.delete_one({"id": player.name})
         recentdb.insert_one(player_data)
