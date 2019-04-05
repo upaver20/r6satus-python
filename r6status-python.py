@@ -60,6 +60,64 @@ def zchk(target):
         return target + 1
     return target
 
+@asyncio.coroutine
+def get_data(auth,id):
+    player = yield from auth.get_player(id, r6sapi.Platforms.UPLAY)
+    yield from player.check_general()
+    yield from player.check_level()
+    yield from player.load_queues()
+    rank_data = yield from player.get_rank(r6sapi.RankedRegions.ASIA)
+    operators_data = yield from player.get_all_operators()
+
+    return player,rank_data,operators_data
+    
+def pack_data(player,rank_data,operators_data,date):
+    player_data = {
+        "id": player.name,
+        "date": date,
+        "level": player.level,
+        "icon": player.icon_url,
+        "rank": rank_data.rank,
+        "uid": player.userid,
+        "operator": [],
+        "general": {
+            "kills": player.kills,
+            "deaths": player.deaths,
+            "kdr": player.kills / zchk(player.deaths),
+            "wons": player.matches_won,
+            "loses": player.matches_lost,
+            "played": player.matches_played,
+            "playtimes": player.time_played,
+            "wlr": player.matches_won / zchk(player.matches_lost)
+        }
+    }
+
+    for gamemode in [player.casual, player.ranked]:
+        player_data[gamemode.name] = {
+            "kills": gamemode.kills,
+            "deaths": gamemode.deaths,
+            "kdr": gamemode.kills / zchk(gamemode.deaths),
+            "wons": gamemode.won,
+            "loses": gamemode.lost,
+            "played": gamemode.played,
+            "playtimes": gamemode.time_played,
+            "wlr": gamemode.won / zchk(gamemode.lost)
+        }
+
+    for _, operator in operators_data.items():
+        player_data["operator"].append({
+            "name": operator.name,
+            "type": OperatorTypes[operator.name.upper()],
+            "kills": operator.kills,
+            "deaths": operator.deaths,
+            "kdr": operator.kills / zchk(operator.deaths),
+            "wons": operator.wins,
+            "loses": operator.losses,
+            "pick": operator.wins + operator.losses
+        })
+    return player_data
+
+
 
 @asyncio.coroutine
 def run():
@@ -72,7 +130,7 @@ def run():
     olddb = client['r6status']['old']
     userdb = client['r6status']['user']
     id2uid = client['r6status']['id2uid']
-    liev_id = client['r6status']['live_id']
+    live_id = client['r6status']['live_id']
     dead_id = client['r6status']['dead_id']
 
     mail = config["e-mail address"]
@@ -92,73 +150,33 @@ def run():
     for player_id in players:
         date = datetime.datetime.utcnow()
         try:
-            player = yield from auth.get_player(player_id['id'],
-                                                r6sapi.Platforms.UPLAY)
-            yield from player.check_general()
-            yield from player.check_level()
-            yield from player.load_queues()
-            rank_data = yield from player.get_rank(r6sapi.RankedRegions.ASIA)
-            operators_data = yield from player.get_all_operators()
+            player,rank_data,operators_data = yield from get_data(auth,player_id['id'])
 
         except r6sapi.r6sapi.InvalidRequest:
             print(player_id['id'] + " is not found")
             userdb.update({"id": player_id['id']},
                           {'$set': {"date": date}, '$inc': {"deathcount": 1}},
                           upsert=True)
+            dead_id.update({"id": player_id['id']},
+                          {'$set': {"date": date}, '$inc': {"deathcount": 1}},
+                          upsert=True)
             if 5 < userdb.find_one({"id": player_id['id']})['deathcount']:
                 userdb.delete_one({"id": player_id['id']})
+                dead_id.delete_one({"id": player_id['id']})
                 print(player_id['id'] + " was deleted in database")
 
             continue
         print(player.userid)
-        player_data = {
-            "date": date,
-            "id": player.name,
-            "level": player.level,
-            "icon": player.icon_url,
-            "rank": rank_data.rank,
-            "uid": player.userid,
-            "operator": [],
-            "general": {
-                "kills": player.kills,
-                "deaths": player.deaths,
-                "kdr": player.kills / zchk(player.deaths),
-                "wons": player.matches_won,
-                "loses": player.matches_lost,
-                "played": player.matches_played,
-                "playtimes": player.time_played,
-                "wlr": player.matches_won / zchk(player.matches_lost)
-            }
-        }
-
-        for gamemode in [player.casual, player.ranked]:
-            player_data[gamemode.name] = {
-                "kills": gamemode.kills,
-                "deaths": gamemode.deaths,
-                "kdr": gamemode.kills / zchk(gamemode.deaths),
-                "wons": gamemode.won,
-                "loses": gamemode.lost,
-                "played": gamemode.played,
-                "playtimes": gamemode.time_played,
-                "wlr": gamemode.won / zchk(gamemode.lost)
-            }
-
-        for _, operator in operators_data.items():
-            player_data["operator"].append({
-                "name": operator.name,
-                "type": OperatorTypes[operator.name.upper()],
-                "kills": operator.kills,
-                "deaths": operator.deaths,
-                "kdr": operator.kills / zchk(operator.deaths),
-                "wons": operator.wins,
-                "loses": operator.losses,
-                "pick": operator.wins + operator.losses
-            })
+        
+        player_data = pack_data(player,rank_data,operators_data,date)
 
         userdb.update_one({"id": player.name}, {
-                      '$set': {"date": date, "deathcount": 0}}, upsert=True)
+                      '$set': {"date": date, "deathcount": 0, "uid":player.userid}}, upsert=True)
+        dead_id.delete_one({"id": player.name})
         id2uid.update_one({"id": player.name}, {
                       '$set': {"date": date, "uid": player.userid}}, upsert=True)
+        live_id.update_one({"id": player.name}, {
+                      '$set': {"date": date, "uid":player.userid}}, upsert=True)
         recentdb.delete_one({"id": player.name})
         recentdb.insert_one(player_data)
         players_data.append(player_data)
