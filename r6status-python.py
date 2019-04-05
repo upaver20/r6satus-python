@@ -117,7 +117,26 @@ def pack_data(player,rank_data,operators_data,date):
         })
     return player_data
 
+def dead_method(dead_id,auth):
+    players = dead_id.find({}, {'_id': 0, 'id': 1})
+    live_uid = []
+    for player_id in players:
+        try:
+            player,rank_data,operators_data = yield from get_data(auth,player_id['id'])
 
+        except r6sapi.r6sapi.InvalidRequest:
+            print(player_id['id'] + " is not found")
+            dead_id.update({"id": player_id['id']},
+                          {'$set': {"date": date}, '$inc': {"deathcount": 1}},
+                          upsert=True)
+            if 5 < userdb.find_one({"id": player_id['id']})['deathcount']:
+                userdb.delete_one({"id": player_id['id']})
+                dead_id.delete_one({"id": player_id['id']})
+                print(player_id['id'] + " was deleted in database")
+            continue
+
+        live_uid.append(player.userid)
+    return live_uid
 
 @asyncio.coroutine
 def run():
@@ -139,6 +158,7 @@ def run():
     players = userdb.find({}, {'_id': 0, 'id': 1})
 
     auth = r6sapi.Auth(mail, pswd)
+
     try:
         yield from auth.connect()
     except r6sapi.r6sapi.FailedToConnect:
@@ -146,6 +166,8 @@ def run():
         sys.exit(1)
 
     players_data = []
+
+
 
     for player_id in players:
         date = datetime.datetime.utcnow()
