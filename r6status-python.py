@@ -50,7 +50,11 @@ OperatorTypes = {
     "LION": "Attack",
     "FINKA": "Attack",
     "MAESTRO": "Defense",
-    "ALIBI": "Defense"
+    "ALIBI": "Defense",
+    "MAVERICK":"Attack",
+    "CLASH":"Defense",
+    "NOMAD":"Attack",
+    "KAID":"Defense",
 }
 
 
