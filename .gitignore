@@ -3,9 +3,10 @@
 ################################################################################
 
 /.vs
-/data.json
 /config.json
-.vscode/
-player_data.json
-err.log
+/data.json
+/.vscode
 log.log
+err.log
+player_data.json
+/env

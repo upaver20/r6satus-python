@@ -6,6 +6,8 @@ import json
 import sys
 import asyncio
 import r6sapi
+from pymongo import MongoClient
+import datetime
 
 OperatorTypes = {
     "DOC": "Defense",
@@ -46,6 +48,53 @@ OperatorTypes = {
     "ZOFIA": "Attack"
 }
 
+OperatorTypes = {
+    "DOC": "Defense",
+    "TWITCH": "Attack",
+    "ASH": "Attack",
+    "THERMITE": "Attack",
+    "BLITZ": "Attack",
+    "BUCK": "Attack",
+    "HIBANA": "Attack",
+    "KAPKAN": "Defense",
+    "PULSE": "Defense",
+    "CASTLE": "Defense",
+    "ROOK": "Defense",
+    "BANDIT": "Defense",
+    "SMOKE": "Defense",
+    "FROST": "Defense",
+    "VALKYRIE": "Defense",
+    "TACHANKA": "Defense",
+    "GLAZ": "Attack",
+    "FUZE": "Attack",
+    "SLEDGE": "Attack",
+    "MONTAGNE": "Attack",
+    "MUTE": "Defense",
+    "ECHO": "Defense",
+    "THATCHER": "Attack",
+    "CAPITAO": "Attack",
+    "IQ": "Attack",
+    "BLACKBEARD": "Attack",
+    "JAGER": "Defense",
+    "CAVEIRA": "Defense",
+    "JACKAL": "Attack",
+    "MIRA": "Defense",
+    "LESION": "Defense",
+    "YING": "Attack",
+    "ELA": "Defense",
+    "DOKKAEBI": "Attack",
+    "VIGIL": "Defense",
+    "ZOFIA": "Attack",
+    "LION": "Attack",
+    "FINKA": "Attack",
+    "MAESTRO": "Defense",
+    "ALIBI": "Defense",
+    "MAVERICK":"Attack",
+    "CLASH":"Defense",
+    "NOMAD":"Attack",
+    "KAID":"Defense",
+}
+
 
 def zchk(target):
     """Check if the input is zero"""
@@ -53,91 +102,168 @@ def zchk(target):
         return target + 1
     return target
 
+@asyncio.coroutine
+def get_data(auth, id = None, uid = None):
+    player = yield from auth.get_player(id, r6sapi.Platforms.UPLAY,uid)
+    yield from player.check_general()
+    yield from player.check_level()
+    yield from player.load_queues()
+    rank_data = yield from player.get_rank(r6sapi.RankedRegions.ASIA)
+    operators_data = yield from player.get_all_operators()
+
+    return player,rank_data,operators_data
+    
+def pack_data(player,rank_data,operators_data,date):
+    player_data = {
+        "id": player.name,
+        "date": date,
+        "level": player.level,
+        "icon": player.icon_url,
+        "rank": rank_data.rank,
+        "uid": player.userid,
+        "operator": [],
+        "general": {
+            "kills": player.kills,
+            "deaths": player.deaths,
+            "kdr": player.kills / zchk(player.deaths),
+            "wons": player.matches_won,
+            "loses": player.matches_lost,
+            "played": player.matches_played,
+            "playtimes": player.time_played,
+            "wlr": player.matches_won / zchk(player.matches_lost)
+        }
+    }
+
+    for gamemode in [player.casual, player.ranked]:
+        player_data[gamemode.name] = {
+            "kills": gamemode.kills,
+            "deaths": gamemode.deaths,
+            "kdr": gamemode.kills / zchk(gamemode.deaths),
+            "wons": gamemode.won,
+            "loses": gamemode.lost,
+            "played": gamemode.played,
+            "playtimes": gamemode.time_played,
+            "wlr": gamemode.won / zchk(gamemode.lost)
+        }
+
+    for _, operator in operators_data.items():
+        player_data["operator"].append({
+            "name": operator.name,
+            "type": OperatorTypes[operator.name.upper()],
+            "kills": operator.kills,
+            "deaths": operator.deaths,
+            "kdr": operator.kills / zchk(operator.deaths),
+            "wons": operator.wins,
+            "loses": operator.losses,
+            "pick": operator.wins + operator.losses
+        })
+    return player_data
 
 @asyncio.coroutine
-def run(players=None):
+def dead_method(dead_id,auth):
+    players = dead_id.find({}, {'_id': 0, 'id': 1})
+    lives = []
+    for player_id in players:
+        date = datetime.datetime.utcnow()
+        try:
+            player,rank_data,operators_data = yield from get_data(auth,player_id['id'],None)
+
+        except r6sapi.r6sapi.InvalidRequest:
+            print(player_id['id'] + " is not found")
+            dead_id.update_one({"id": player_id['id']},
+                          {'$set': {"date": date}, '$inc': {"deathcount": 1}},
+                          upsert=True)
+            if 5 < dead_id.find_one({"id": player_id['id']})['deathcount']:
+                # userdb.delete_one({"id": player_id['id']})
+                dead_id.delete_one({"id": player_id['id']})
+                print(player_id['id'] + " was deleted in database")
+            continue
+        print(player.name + " :"+player.userid)
+        lives.append({
+            'uid': player.userid,
+            'id': player.name
+            })
+    return lives
+
+
+@asyncio.coroutine
+def live_method(live_id, dead_id,auth,lives,userdb,id2uid,recentdb):
+    players_raw = live_id.find({}, {'_id': 0, 'uid': 1, 'id':1})
+    players= []
+    for item in players_raw:
+        players.append({
+            'uid':item['uid'],
+            'id':item['id']
+            })
+    players.extend(lives)
+
+    players_data = []
+    for player_sss in players:
+        date = datetime.datetime.utcnow()
+        try:
+            player,rank_data,operators_data = yield from get_data(auth,None,player_sss['uid'])
+
+        except r6sapi.r6sapi.InvalidRequest:
+            print(player_sss['id'] + " is not found")
+            userdb.update({"id": player_sss['id']},
+                          {'$set': {"date": date}, '$inc': {"deathcount": 1}},
+                          upsert=True)
+            dead_id.update({"id": player_sss['id']},
+                          {'$set': {"date": date,"deathcount": 0 }},
+                          upsert=True)
+            live_id.delete_one({"id": player_sss['id']})
+            continue
+
+
+        print(player.userid)
+
+        
+        player_data = pack_data(player,rank_data,operators_data,date)
+
+        userdb.update_one({"id": player.name}, {
+                      '$set': {"date": date, "deathcount": 0, "uid":player.userid}}, upsert=True)
+        dead_id.delete_one({"id": player.name})
+        id2uid.update_one({"id": player.name}, {
+                      '$set': {"date": date, "uid": player.userid}}, upsert=True)
+        live_id.update_one({"id": player.name}, {
+                      '$set': {"date": date, "uid":player.userid}}, upsert=True)
+        recentdb.delete_one({"id": player.name})
+        recentdb.insert_one(player_data)
+        players_data.append(player_data)
+    return players_data
+
+
+@asyncio.coroutine
+def run():
     """ main function """
-    config = json.load(open('config.json', 'r'))
-    file = open(config["output file"], 'w')
+    config_path = open("./config.json", 'r')
+    config = json.load(config_path)
+
+    client = MongoClient(config["mongodb addres"], config["mongodb port"])
+    recentdb = client['r6status']['recent']
+    olddb = client['r6status']['old']
+    userdb = client['r6status']['user']
+    id2uid = client['r6status']['id2uid']
+    live_id = client['r6status']['live_id']
+    dead_id = client['r6status']['dead_id']
 
     mail = config["e-mail address"]
     pswd = config["password"]
 
-    players = config["players"]
-
-    file = open(config["output file"], 'w')
+    players = userdb.find({}, {'_id': 0, 'id': 1})
 
     auth = r6sapi.Auth(mail, pswd)
+
     try:
         yield from auth.connect()
     except r6sapi.r6sapi.FailedToConnect:
         print("Email address and password do not match")
         sys.exit(1)
 
-    players_data = []
+    lives = yield from dead_method(dead_id,auth)
+    players_data = yield from live_method(live_id, dead_id,auth,lives,userdb,id2uid,recentdb)
 
-    for player_id in players:
-
-        try:
-            player = yield from auth.get_player(player_id,
-                                                r6sapi.Platforms.UPLAY)
-            yield from player.check_general()
-            yield from player.check_level()
-            yield from player.load_queues()
-            rank_data = yield from player.get_rank(r6sapi.RankedRegions.ASIA)
-            operators_data = yield from player.load_all_operators()
-
-        except r6sapi.r6sapi.InvalidRequest:
-            print(player_id + " is not found")
-            continue
-
-        player_data = {
-            "id": player.name,
-            "level": player.level,
-            "icon": player.icon_url,
-            "rank": rank_data.rank,
-            "operator": {},
-            "general": {
-                "kills": player.kills,
-                "deaths": player.deaths,
-                "K/D Ratio": round(player.kills / zchk(player.deaths), 2),
-                "wons": player.matches_won,
-                "loses": player.matches_lost,
-                "played": player.matches_played,
-                "play time": player.time_played,
-                "W/L Ratio": round(player.matches_won /
-                                   zchk(player.matches_lost), 2)
-            }
-        }
-
-        for gamemode in [player.casual, player.ranked]:
-
-            player_data[gamemode.name] = {
-                "kills": gamemode.kills,
-                "deaths": gamemode.deaths,
-                "K/D Ratio": round(gamemode.kills / zchk(gamemode.deaths), 2),
-                "wons": gamemode.won,
-                "loses": gamemode.lost,
-                "played": gamemode.played,
-                "play time": gamemode.time_played,
-                "W/L Ratio": round(gamemode.won / zchk(gamemode.lost), 2)
-            }
-
-        for name, operator in operators_data.items():
-            player_data["operator"][name] = {
-                "type": OperatorTypes[operator.name.upper()],
-                "kills": operator.kills,
-                "deaths": operator.deaths,
-                "kdr": operator.kills / zchk(operator.deaths),
-                "wons": operator.wins,
-                "loses": operator.losses,
-                "pick": operator.wins + operator.losses
-            }
-
-        players_data.append(player_data)
-
-    json.dump(players_data, file, indent=4, sort_keys=True)
+    olddb.insert_many(players_data)
 
 
-args = sys.argv
-asyncio.get_event_loop().run_until_complete(run(args))
+asyncio.get_event_loop().run_until_complete(run())
