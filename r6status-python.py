@@ -74,6 +74,7 @@ def run():
     olddb = client['r6status']['old']
     userdb = client['r6status']['user']
     id2uid = client['r6status']['id2uid']
+    livedb = client['r6status']['live_id']
 
     mail = config["e-mail address"]
     pswd = config["password"]
@@ -155,15 +156,13 @@ def run():
                 "pick": operator.wins + operator.losses
             })
 
-        userdb.update({"id": player.name}, {
-                      '$set': {"date": date, "deathcount": 0}}, upsert=True)
-        id2uid.update({"id": player.name}, {
-                      '$set': {"date": date, "uid": player.userid}}, upsert=True)
-        recentdb.delete_one({"id": player.name})
-        recentdb.insert_one(player_data)
-        players_data.append(player_data)
-
-    olddb.insert_many(players_data)
+        userdb.update({"id": player.name}, {'$set': {"date": date, "deathcount": 0}}, upsert=True)
+        id2uid.update({"id": player.name}, {'$set': {"date": date, "uid": player.userid}}, upsert=True)
+        livedb.update({"id": player.name}, {'$set': {"date": date, "uid": player.userid}}, upsert=True)
+	recentdb.delete_one({"id": player.name})
+	recentdb.insert_one(player_data)
+	players_data.append(player_data)
+olddb.insert_many(players_data)
 
 
 asyncio.get_event_loop().run_until_complete(run())
