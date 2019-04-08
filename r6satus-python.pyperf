@@ -4,5 +4,10 @@
     <TargetProject>ec8edd16-8254-44ab-abc5-ce1c53f4cbb4</TargetProject>
     <FriendlyName>r6satus-python</FriendlyName>
   </ProjectTarget>
+  <Reports>
+    <Report>
+      <Filename>C:\Users\upaver20\AppData\Local\Temp\r6satus-python_20190405.vsp</Filename>
+    </Report>
+  </Reports>
   <UseVTune>false</UseVTune>
 </ProfilingTarget>

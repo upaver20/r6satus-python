@@ -61,8 +61,8 @@ def zchk(target):
     return target
 
 @asyncio.coroutine
-def get_data(auth,id):
-    player = yield from auth.get_player(id, r6sapi.Platforms.UPLAY)
+def get_data(auth, id = None, uid = None):
+    player = yield from auth.get_player(id, r6sapi.Platforms.UPLAY,uid)
     yield from player.check_general()
     yield from player.check_level()
     yield from player.load_queues()
@@ -117,26 +117,79 @@ def pack_data(player,rank_data,operators_data,date):
         })
     return player_data
 
+@asyncio.coroutine
 def dead_method(dead_id,auth):
     players = dead_id.find({}, {'_id': 0, 'id': 1})
-    live_uid = []
+    lives = []
     for player_id in players:
+        date = datetime.datetime.utcnow()
         try:
-            player,rank_data,operators_data = yield from get_data(auth,player_id['id'])
+            player,rank_data,operators_data = yield from get_data(auth,player_id['id'],None)
 
         except r6sapi.r6sapi.InvalidRequest:
             print(player_id['id'] + " is not found")
-            dead_id.update({"id": player_id['id']},
+            dead_id.update_one({"id": player_id['id']},
                           {'$set': {"date": date}, '$inc': {"deathcount": 1}},
                           upsert=True)
-            if 5 < userdb.find_one({"id": player_id['id']})['deathcount']:
-                userdb.delete_one({"id": player_id['id']})
+            if 5 < dead_id.find_one({"id": player_id['id']})['deathcount']:
+                # userdb.delete_one({"id": player_id['id']})
                 dead_id.delete_one({"id": player_id['id']})
                 print(player_id['id'] + " was deleted in database")
             continue
+        print(player.name + " :"+player.userid)
+        lives.append({
+            'uid': player.userid,
+            'id': player.name
+            })
+    return lives
 
-        live_uid.append(player.userid)
-    return live_uid
+
+@asyncio.coroutine
+def live_method(live_id, dead_id,auth,lives,userdb,id2uid,recentdb):
+    players_raw = live_id.find({}, {'_id': 0, 'uid': 1, 'id':1})
+    players= []
+    for item in players_raw:
+        players.append({
+            'uid':item['uid'],
+            'id':item['id']
+            })
+    players.extend(lives)
+
+    players_data = []
+    for player_sss in players:
+        date = datetime.datetime.utcnow()
+        try:
+            player,rank_data,operators_data = yield from get_data(auth,None,player_sss['uid'])
+
+        except r6sapi.r6sapi.InvalidRequest:
+            print(player_sss['id'] + " is not found")
+            userdb.update({"id": player_sss['id']},
+                          {'$set': {"date": date}, '$inc': {"deathcount": 1}},
+                          upsert=True)
+            dead_id.update({"id": player_sss['id']},
+                          {'$set': {"date": date,"deathcount": 0 }},
+                          upsert=True)
+            live_id.delete_one({"id": player_sss['id']})
+            continue
+
+
+        print(player.userid)
+
+        
+        player_data = pack_data(player,rank_data,operators_data,date)
+
+        userdb.update_one({"id": player.name}, {
+                      '$set': {"date": date, "deathcount": 0, "uid":player.userid}}, upsert=True)
+        dead_id.delete_one({"id": player.name})
+        id2uid.update_one({"id": player.name}, {
+                      '$set': {"date": date, "uid": player.userid}}, upsert=True)
+        live_id.update_one({"id": player.name}, {
+                      '$set': {"date": date, "uid":player.userid}}, upsert=True)
+        recentdb.delete_one({"id": player.name})
+        recentdb.insert_one(player_data)
+        players_data.append(player_data)
+    return players_data
+
 
 @asyncio.coroutine
 def run():
@@ -165,43 +218,8 @@ def run():
         print("Email address and password do not match")
         sys.exit(1)
 
-    players_data = []
-
-
-
-    for player_id in players:
-        date = datetime.datetime.utcnow()
-        try:
-            player,rank_data,operators_data = yield from get_data(auth,player_id['id'])
-
-        except r6sapi.r6sapi.InvalidRequest:
-            print(player_id['id'] + " is not found")
-            userdb.update({"id": player_id['id']},
-                          {'$set': {"date": date}, '$inc': {"deathcount": 1}},
-                          upsert=True)
-            dead_id.update({"id": player_id['id']},
-                          {'$set': {"date": date}, '$inc': {"deathcount": 1}},
-                          upsert=True)
-            if 5 < userdb.find_one({"id": player_id['id']})['deathcount']:
-                userdb.delete_one({"id": player_id['id']})
-                dead_id.delete_one({"id": player_id['id']})
-                print(player_id['id'] + " was deleted in database")
-
-            continue
-        print(player.userid)
-        
-        player_data = pack_data(player,rank_data,operators_data,date)
-
-        userdb.update_one({"id": player.name}, {
-                      '$set': {"date": date, "deathcount": 0, "uid":player.userid}}, upsert=True)
-        dead_id.delete_one({"id": player.name})
-        id2uid.update_one({"id": player.name}, {
-                      '$set': {"date": date, "uid": player.userid}}, upsert=True)
-        live_id.update_one({"id": player.name}, {
-                      '$set': {"date": date, "uid":player.userid}}, upsert=True)
-        recentdb.delete_one({"id": player.name})
-        recentdb.insert_one(player_data)
-        players_data.append(player_data)
+    lives = yield from dead_method(dead_id,auth)
+    players_data = yield from live_method(live_id, dead_id,auth,lives,userdb,id2uid,recentdb)
 
     olddb.insert_many(players_data)
 
