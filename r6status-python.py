@@ -54,6 +54,8 @@ OperatorTypes = {
     "CLASH":"Defense",
     "NOMAD":"Attack",
     "KAID":"Defense",
+    "GRIDLOCK":"Attack",
+    "MOZZIE":"Defense"
 }
 
 
