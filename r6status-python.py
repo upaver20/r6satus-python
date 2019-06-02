@@ -223,6 +223,7 @@ async def run():
     players_data = await live_method(live_id, dead_id,auth,lives,userdb,id2uid,recentdb)
 
     olddb.insert_many(players_data)
+    await auth.close()
 
 
 asyncio.get_event_loop().run_until_complete(run())
