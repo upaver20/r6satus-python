@@ -129,7 +129,7 @@ async def dead_method(dead_id,auth):
         try:
             player,rank_data,operators_data = await get_data(auth,player_id['id'],None)
 
-        except r6sapi.r6sapi.InvalidRequest:
+        except r6sapi.exceptions.InvalidRequest:
             print(player_id['id'] + " is not found")
             dead_id.update_one({"id": player_id['id']},
                           {'$set': {"date": date}, '$inc': {"deathcount": 1}},
@@ -163,7 +163,7 @@ async def live_method(live_id, dead_id,auth,lives,userdb,id2uid,recentdb):
         try:
             player,rank_data,operators_data = await get_data(auth,None,player_sss['uid'])
 
-        except r6sapi.r6sapi.InvalidRequest:
+        except r6sapi.exceptions.InvalidRequest:
             print(player_sss['id'] + " is not found")
             userdb.update({"id": player_sss['id']},
                           {'$set': {"date": date}, '$inc': {"deathcount": 1}},
