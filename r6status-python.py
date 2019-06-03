@@ -54,6 +54,8 @@ OperatorTypes = {
     "CLASH":"Defense",
     "NOMAD":"Attack",
     "KAID":"Defense",
+    "GRIDLOCK":"Attack",
+    "MOZZIE":"Defense"
 }
 
 
@@ -63,17 +65,16 @@ def zchk(target):
         return target + 1
     return target
 
-@asyncio.coroutine
-def get_data(auth, id = None, uid = None):
-    player = yield from auth.get_player(id, r6sapi.Platforms.UPLAY,uid)
-    yield from player.check_general()
-    yield from player.check_level()
-    yield from player.load_queues()
-    rank_data = yield from player.get_rank(r6sapi.RankedRegions.ASIA)
-    operators_data = yield from player.get_all_operators()
+async def get_data(auth, id = None, uid = None):
+    player = await auth.get_player(id, r6sapi.Platforms.UPLAY,uid)
+    await player.check_general()
+    await player.check_level()
+    await player.load_queues()
+    rank_data = await player.get_rank(r6sapi.RankedRegions.ASIA)
+    operators_data = await player.get_all_operators()
 
     return player,rank_data,operators_data
-    
+
 def pack_data(player,rank_data,operators_data,date):
     player_data = {
         "id": player.name,
@@ -120,14 +121,13 @@ def pack_data(player,rank_data,operators_data,date):
         })
     return player_data
 
-@asyncio.coroutine
-def dead_method(dead_id,auth):
+async def dead_method(dead_id,auth):
     players = dead_id.find({}, {'_id': 0, 'id': 1})
     lives = []
     for player_id in players:
         date = datetime.datetime.utcnow()
         try:
-            player,rank_data,operators_data = yield from get_data(auth,player_id['id'],None)
+            player,rank_data,operators_data = await get_data(auth,player_id['id'],None)
 
         except r6sapi.r6sapi.InvalidRequest:
             print(player_id['id'] + " is not found")
@@ -147,8 +147,7 @@ def dead_method(dead_id,auth):
     return lives
 
 
-@asyncio.coroutine
-def live_method(live_id, dead_id,auth,lives,userdb,id2uid,recentdb):
+async def live_method(live_id, dead_id,auth,lives,userdb,id2uid,recentdb):
     players_raw = live_id.find({}, {'_id': 0, 'uid': 1, 'id':1})
     players= []
     for item in players_raw:
@@ -162,7 +161,7 @@ def live_method(live_id, dead_id,auth,lives,userdb,id2uid,recentdb):
     for player_sss in players:
         date = datetime.datetime.utcnow()
         try:
-            player,rank_data,operators_data = yield from get_data(auth,None,player_sss['uid'])
+            player,rank_data,operators_data = await get_data(auth,None,player_sss['uid'])
 
         except r6sapi.r6sapi.InvalidRequest:
             print(player_sss['id'] + " is not found")
@@ -178,7 +177,7 @@ def live_method(live_id, dead_id,auth,lives,userdb,id2uid,recentdb):
 
         print(player.userid)
 
-        
+
         player_data = pack_data(player,rank_data,operators_data,date)
 
         userdb.update_one({"id": player.name}, {
@@ -194,8 +193,7 @@ def live_method(live_id, dead_id,auth,lives,userdb,id2uid,recentdb):
     return players_data
 
 
-@asyncio.coroutine
-def run():
+async def run():
     """ main function """
     config_path = open("./config.json", 'r')
     config = json.load(config_path)
@@ -214,15 +212,16 @@ def run():
     auth = r6sapi.Auth(mail, pswd)
 
     try:
-        yield from auth.connect()
-    except r6sapi.r6sapi.FailedToConnect:
+        await auth.connect()
+    except r6sapi.exceptions.FailedToConnect:
         print("Email address and password do not match")
         sys.exit(1)
 
-    lives = yield from dead_method(dead_id,auth)
-    players_data = yield from live_method(live_id, dead_id,auth,lives,userdb,id2uid,recentdb)
+    lives = await dead_method(dead_id,auth)
+    players_data = await live_method(live_id, dead_id,auth,lives,userdb,id2uid,recentdb)
 
     olddb.insert_many(players_data)
+    await auth.close()
 
 
 asyncio.get_event_loop().run_until_complete(run())

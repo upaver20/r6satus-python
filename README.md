@@ -4,15 +4,15 @@ Extract player data of Rainbow six siege
 
 ## request
 
-python 3.x
+* python 3.x
 
-r6sapi >= 0.2.0
+* r6sapi >= 0.2.0
 
-mongodb
+* mongodb
 
 ## Get started
 
-    pip install r6sapi
+    pip install r6sapi pymongo
     git clone https://github.com/upaver20/r6satus-python.git
     cd ./r6satus-python
     cp config_sample.json config.json
@@ -22,4 +22,5 @@ Edit `config.json` and Run!!!
 
     python r6status-python.py
 or
-	python r6status-python.py "upa.ver.2.0.Gsc"
+
+    python r6status-python.py "upa.ver.2.0.Gsc"
