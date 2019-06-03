@@ -215,7 +215,7 @@ async def run():
 
     try:
         await auth.connect()
-    except r6sapi.r6sapi.FailedToConnect:
+    except r6sapi.exceptions.FailedToConnect:
         print("Email address and password do not match")
         sys.exit(1)
 
