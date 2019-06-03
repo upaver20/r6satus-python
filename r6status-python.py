@@ -186,8 +186,8 @@ def live_method(live_id, dead_id,auth,lives,userdb,id2uid,recentdb):
         dead_id.delete_one({"id": player.name})
         id2uid.update_one({"id": player.name}, {
                       '$set': {"date": date, "uid": player.userid}}, upsert=True)
-        live_id.update_one({"id": player.name}, {
-                      '$set': {"date": date, "uid":player.userid}}, upsert=True)
+        live_id.update_one({"uid": player.userid}, {
+                      '$set': {"date": date, "id":player.name}}, upsert=True)
         recentdb.delete_one({"id": player.name})
         recentdb.insert_one(player_data)
         players_data.append(player_data)
@@ -210,8 +210,6 @@ def run():
 
     mail = config["e-mail address"]
     pswd = config["password"]
-
-    players = userdb.find({}, {'_id': 0, 'id': 1})
 
     auth = r6sapi.Auth(mail, pswd)
 
