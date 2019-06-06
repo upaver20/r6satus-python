@@ -50,12 +50,12 @@ OperatorTypes = {
     "FINKA": "Attack",
     "MAESTRO": "Defense",
     "ALIBI": "Defense",
-    "MAVERICK":"Attack",
-    "CLASH":"Defense",
-    "NOMAD":"Attack",
-    "KAID":"Defense",
-    "GRIDLOCK":"Attack",
-    "MOZZIE":"Defense"
+    "MAVERICK": "Attack",
+    "CLASH": "Defense",
+    "NOMAD": "Attack",
+    "KAID": "Defense",
+    "GRIDLOCK": "Attack",
+    "MOZZIE": "Defense"
 }
 
 
@@ -65,17 +65,19 @@ def zchk(target):
         return target + 1
     return target
 
-async def get_data(auth, id = None, uid = None):
-    player = await auth.get_player(id, r6sapi.Platforms.UPLAY,uid)
+
+async def get_data(auth, id=None, uid=None):
+    player = await auth.get_player(id, r6sapi.Platforms.UPLAY, uid)
     await player.check_general()
     await player.check_level()
     await player.load_queues()
     rank_data = await player.get_rank(r6sapi.RankedRegions.ASIA)
     operators_data = await player.get_all_operators()
 
-    return player,rank_data,operators_data
+    return player, rank_data, operators_data
 
-def pack_data(player,rank_data,operators_data,date):
+
+def pack_data(player, rank_data, operators_data, date):
     player_data = {
         "id": player.name,
         "date": date,
@@ -121,19 +123,20 @@ def pack_data(player,rank_data,operators_data,date):
         })
     return player_data
 
-async def dead_method(dead_id,auth):
+
+async def dead_method(dead_id, auth):
     players = dead_id.find({}, {'_id': 0, 'id': 1})
     lives = []
     for player_id in players:
         date = datetime.datetime.utcnow()
         try:
-            player,rank_data,operators_data = await get_data(auth,player_id['id'],None)
+            player, rank_data, operators_data = await get_data(auth, player_id['id'], None)
 
         except r6sapi.exceptions.InvalidRequest:
             print(player_id['id'] + " is not found")
             dead_id.update_one({"id": player_id['id']},
-                          {'$set': {"date": date}, '$inc': {"deathcount": 1}},
-                          upsert=True)
+                               {'$set': {"date": date}, '$inc': {"deathcount": 1}},
+                               upsert=True)
             if 5 < dead_id.find_one({"id": player_id['id']})['deathcount']:
                 # userdb.delete_one({"id": player_id['id']})
                 dead_id.delete_one({"id": player_id['id']})
@@ -143,25 +146,25 @@ async def dead_method(dead_id,auth):
         lives.append({
             'uid': player.userid,
             'id': player.name
-            })
+        })
     return lives
 
 
-async def live_method(live_id, dead_id,auth,lives,userdb,id2uid,recentdb):
-    players_raw = live_id.find({}, {'_id': 0, 'uid': 1, 'id':1})
-    players= []
+async def live_method(live_id, dead_id, auth, lives, userdb, id2uid, recentdb):
+    players_raw = live_id.find({}, {'_id': 0, 'uid': 1, 'id': 1})
+    players = []
     for item in players_raw:
         players.append({
-            'uid':item['uid'],
-            'id':item['id']
-            })
+            'uid': item['uid'],
+            'id': item['id']
+        })
     players.extend(lives)
 
     players_data = []
     for player_sss in players:
         date = datetime.datetime.utcnow()
         try:
-            player,rank_data,operators_data = await get_data(auth,None,player_sss['uid'])
+            player, rank_data, operators_data = await get_data(auth, None, player_sss['uid'])
 
         except r6sapi.exceptions.InvalidRequest:
             print(player_sss['id'] + " is not found")
@@ -169,24 +172,22 @@ async def live_method(live_id, dead_id,auth,lives,userdb,id2uid,recentdb):
                           {'$set': {"date": date}, '$inc': {"deathcount": 1}},
                           upsert=True)
             dead_id.update({"id": player_sss['id']},
-                          {'$set': {"date": date,"deathcount": 0 }},
-                          upsert=True)
+                           {'$set': {"date": date, "deathcount": 0}},
+                           upsert=True)
             live_id.delete_one({"id": player_sss['id']})
             continue
 
-
         print(player.userid)
 
-
-        player_data = pack_data(player,rank_data,operators_data,date)
+        player_data = pack_data(player, rank_data, operators_data, date)
 
         userdb.update_one({"id": player.name}, {
-                      '$set': {"date": date, "deathcount": 0, "uid":player.userid}}, upsert=True)
+            '$set': {"date": date, "deathcount": 0, "uid": player.userid}}, upsert=True)
         dead_id.delete_one({"id": player.name})
         id2uid.update_one({"id": player.name}, {
-                      '$set': {"date": date, "uid": player.userid}}, upsert=True)
+            '$set': {"date": date, "uid": player.userid}}, upsert=True)
         live_id.update_one({"uid": player.userid}, {
-                      '$set': {"date": date, "id":player.name}}, upsert=True)
+            '$set': {"date": date, "id": player.name}}, upsert=True)
         recentdb.delete_one({"id": player.name})
         recentdb.insert_one(player_data)
         players_data.append(player_data)
@@ -220,8 +221,8 @@ async def run():
         print("{0}".format(e))
         sys.exit(1)
 
-    lives = await dead_method(dead_id,auth)
-    players_data = await live_method(live_id, dead_id,auth,lives,userdb,id2uid,recentdb)
+    lives = await dead_method(dead_id, auth)
+    players_data = await live_method(live_id, dead_id, auth, lives, userdb, id2uid, recentdb)
 
     olddb.insert_many(players_data)
     await auth.close()
