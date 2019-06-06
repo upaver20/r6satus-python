@@ -213,8 +213,11 @@ async def run():
 
     try:
         await auth.connect()
-    except r6sapi.exceptions.FailedToConnect:
-        print("Email address and password do not match")
+    except r6sapi.exceptions.FailedToConnect as e:
+        print("type:{0}".format(type(e)))
+        print("args:{0}".format(e.args))
+        print("message:{0}".format(e.message))
+        print("{0}".format(e))
         sys.exit(1)
 
     lives = await dead_method(dead_id,auth)
