@@ -6,7 +6,7 @@ Extract player data of Rainbow six siege
 
 * python 3.x
 
-* r6sapi >= 0.2.0
+* r6sapi >= 1.0.0
 
 * mongodb
 
@@ -21,6 +21,3 @@ Extract player data of Rainbow six siege
 Edit `config.json` and Run!!!
 
     python r6status-python.py
-or
-
-    python r6status-python.py "upa.ver.2.0.Gsc"
