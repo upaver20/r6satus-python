@@ -73,7 +73,7 @@ def get_data(auth, id = None, uid = None):
     operators_data = yield from player.get_all_operators()
 
     return player,rank_data,operators_data
-    
+
 def pack_data(player,rank_data,operators_data,date):
     player_data = {
         "id": player.name,
@@ -118,7 +118,8 @@ def pack_data(player,rank_data,operators_data,date):
             "loses": operator.losses,
             "pick": operator.wins + operator.losses
         })
-    return player_data
+
+        return player_data
 
 @asyncio.coroutine
 def dead_method(dead_id,auth):
@@ -178,7 +179,7 @@ def live_method(live_id, dead_id,auth,lives,userdb,id2uid,recentdb):
 
         print(player.userid)
 
-        
+
         player_data = pack_data(player,rank_data,operators_data,date)
 
         userdb.update_one({"id": player.name}, {
