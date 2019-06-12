@@ -65,14 +65,16 @@ def zchk(target):
         return target + 1
     return target
 
+
 @asyncio.coroutine
-def get_data(auth, id = None, uid = None):
-    player = yield from auth.get_player(id, r6sapi.Platforms.UPLAY,uid)
+def get_data(auth, id=None, uid=None):
+    player = yield from auth.get_player(id, r6sapi.Platforms.UPLAY, uid)
     yield from player.check_general()
     yield from player.check_level()
     yield from player.load_queues()
     rank_data = yield from player.get_rank(r6sapi.RankedRegions.ASIA)
     operators_data = yield from player.get_all_operators()
+
 
 async def get_data(auth, id=None, uid=None):
     player = await auth.get_player(id, r6sapi.Platforms.UPLAY, uid)
@@ -150,7 +152,8 @@ async def dead_method(dead_id, auth):
                 auth, player_id['id'], None)
 
         except r6sapi.exceptions.InvalidRequest:
-            print(player_id['id'] + " is not found")
+            print(date, file=sys.stderr)
+            print(player_id['id'] + " is not found", file=sys.stderr)
             dead_id.update_one({"id": player_id['id']}, {
                 '$set': {
                     "date": date
@@ -163,9 +166,11 @@ async def dead_method(dead_id, auth):
             if 5 < dead_id.find_one({"id": player_id['id']})['deathcount']:
                 # userdb.delete_one({"id": player_id['id']})
                 dead_id.delete_one({"id": player_id['id']})
-                print(player_id['id'] + " was deleted in database")
+                print(date, file=sys.stderr)
+                print(player_id['id'] + " was deleted in database",
+                      file=sys.stderr)
             continue
-        print(player.name + " :" + player.userid)
+        # print(player.name + " :" + player.userid)
         lives.append({'uid': player.userid, 'id': player.name})
     return lives
 
@@ -185,7 +190,8 @@ async def live_method(live_id, dead_id, auth, lives, userdb, id2uid, recentdb):
                 auth, None, player_sss['uid'])
 
         except r6sapi.exceptions.InvalidRequest:
-            print(player_sss['id'] + " is not found")
+            print(date, file=sys.stderr)
+            print(player_sss['id'] + " is not found", file=sys.stderr)
             userdb.update({"id": player_sss['id']}, {
                 '$set': {
                     "date": date
@@ -204,7 +210,7 @@ async def live_method(live_id, dead_id, auth, lives, userdb, id2uid, recentdb):
             live_id.delete_one({"id": player_sss['id']})
             continue
 
-        print(player.userid)
+        # print(player.userid)
 
         player_data = pack_data(player, rank_data, operators_data, date)
 
@@ -268,6 +274,8 @@ async def run():
 
     olddb.insert_many(players_data)
     await auth.close()
+    print(datetime.datetime.utcnow())
+    print("finised")
 
 
 asyncio.get_event_loop().run_until_complete(run())
