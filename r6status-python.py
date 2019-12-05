@@ -55,7 +55,11 @@ OperatorTypes = {
     "NOMAD": "Attack",
     "KAID": "Defense",
     "GRIDLOCK": "Attack",
-    "MOZZIE": "Defense"
+    "MOZZIE": "Defense",
+    "WARDEN": "Defense",
+    "NAKK": "Attack",
+    "AMARU": "Attack",
+    "GOYO": "Defense"
 }
 
 
